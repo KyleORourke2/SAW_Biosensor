@@ -7,24 +7,45 @@
 
 
 class Header {
-  int Height; // Thickness of the header.
+  int xpos = 0;
+  int ypos = 0;
+  int Height = headerHeight; // Thickness of the header.
   int Width = width; // should span entire width.
   color fillColor;
   
   Button exitButton; // Button to close program.
   
   Header(){
-    exitButton = new Button(width-25, headerHeight/2, 50, headerHeight, exitFill, exitText, exitStroke, "X");
+    exitButton = new Button(width-25, headerHeight/2, 50, headerHeight-1, exitFill, exitText, exitStroke, "X");
   }
   
   void display(){
     // Header bar:
     noStroke();
     fill(headerFill);
-    rect(0, 0, width, headerHeight);
+    rect(0, 0, Width, Height);
     
     // Objects in header:
     exitButton.display();
+  }
+
+  // Check if a click is in the header box.
+  boolean wasClicked(int mx, int my){
+    if(mx >= xpos && mx <= xpos + Width){
+      if(my >= ypos && my <= ypos + Height){
+        return true;
+      }
+    }
+    return false; // Didn't meet both conditions
+  }
+  
+  // Check if the was clicked location has an action
+  void click(int mx, int my){
+    if(wasClicked(mx, my)){ // The header area was clicked.
+      if(exitButton.wasClicked(mx, my)){ // Exit button action.
+        exit();
+      }
+    }
   }
   
 } // Header class end.

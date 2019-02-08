@@ -50,7 +50,7 @@ class Button {
     text(text, xpos, ypos);
   }
   
-  // Check if the click is in the button box.
+  // Check if a click is in the button box.
   boolean wasClicked(int mx, int my){
     if(mx >= xpos - Width/2 && mx <= xpos + Width/2){
       if(my >= ypos - Height/2 && my <= ypos + Height/2){

@@ -18,9 +18,9 @@ color toolbarFill = #42a5f5;
 int hoverFade = 100;
 
 // EXIT (Top right corner):
-color exitFill = #FFFF00;
-color exitStroke = #fafafa;
-color exitText = #000000;
+color exitFill = #ff3d00;
+color exitStroke = #0077c2; //#fafafa;
+color exitText = #fafafa;
 
 
 // Background

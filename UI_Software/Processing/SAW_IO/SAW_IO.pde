@@ -21,7 +21,6 @@ void draw() {
 
 
 void mousePressed() {
-  if(header.exitButton.wasClicked(mouseX, mouseY)){
-    exit();
-  }
+  header.click(mouseX, mouseY);
+
 }
