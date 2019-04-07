@@ -47,10 +47,8 @@ class Header {
   
   // Check if the was clicked location has an action
   void click(int mx, int my){
-    if(wasClicked(mx, my)){ // The header area was clicked.
-      if(exitButton.wasClicked(mx, my)){ // Exit button action.
-        exit();
-      }
+    if(exitButton.wasClicked(mx, my)){ // Exit button action.
+      exit();
     }
   }
   

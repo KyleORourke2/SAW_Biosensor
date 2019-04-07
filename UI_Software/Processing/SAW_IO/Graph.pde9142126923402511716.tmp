@@ -1,0 +1,78 @@
+// Graph class:
+// Takes in data object or function and plots it on
+// an X Y plot.
+
+
+class Graph {
+  
+  color lineColor;
+  color graphColor;
+  String xText; // x Axis label
+  String yText; // y Axis label
+  int xpos;     // x Location of graph
+  int ypos;     // y Location of graph
+  int Width;    // x Size of graph
+  int Height;   // y Size of graph
+  float[] DataX;
+  float[] DataY;
+  
+  // Constructor
+  // positions x y, dimensions w h, color body, color text
+  Graph(float[] dataX, float[] dataY, int x, int y, int w, int h, color lineC, String xT, String yT){
+    lineColor = lineC;
+    xText = xT;
+    yText = yT;
+    xpos = x;
+    ypos = y;
+    Width = w;
+    Height = h;
+    DataX = dataX;
+    DataY = dataY;
+    
+  }
+  
+  void display(){
+    // Write Axis Text
+    fill(graphColor);
+    textSize(30);
+    textAlign(CENTER, CENTER);
+    text(xText, xpos+(Width/2), ypos+40);
+    text(yText, xpos-60, ypos-(Height/2));
+    
+    // Draw graph box:
+    strokeWeight(4);
+    stroke(0);
+    line(xpos, ypos, xpos+Width, ypos); // Bottom line
+    line(xpos, ypos, xpos, ypos-Height); // Left line
+    line(xpos+Width, ypos, xpos+Width, ypos-Height); // Right line
+    line(xpos, ypos-Height, xpos+Width, ypos-Height); // Right line
+    
+    
+    // Adjust array by xpos & ypos
+    DataX = arrayShift(DataX, xpos);
+    DataY = arrayShift(DataY, -ypos);
+
+   
+    strokeWeight(5);
+    stroke(lineColor);
+    for (int i = 0; i < DataX.length-1; i++){
+      line(DataX[i], DataY[i], DataX[i+1], DataY[i+1]);
+    }
+    
+  } // Display end
+  
+  
+  // Shifts all of array's values by set amount.
+  float [] arrayShift(float[] data, int shift){
+    for (int i = 0; i < data.length; i++){
+      data[i] += shift;
+      println(data[i]);
+    }
+    return data;
+  }
+  
+}
+
+
+
+ 

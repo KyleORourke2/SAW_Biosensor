@@ -1,0 +1,46 @@
+// Graph class:
+// Takes in data object or function and plots it on
+// an X Y plot.
+
+
+class Graph {
+  
+  color lineColor;
+  color graphColor;
+  String xText; // x Axis label
+  String yText; // y Axis label
+  int xpos;     // x Location of graph
+  int ypos;     // y Location of graph
+  int Width;    // x Size of graph
+  int Height;   // y Size of graph
+  int[][] Data;
+  
+  // Constructor
+  // positions x y, dimensions w h, color body, color text
+  Graph(int[][] dat, int x, int y, int w, int h, color lineC, String xT, String yT){
+    lineColor = lineC;
+    xText = xT;
+    yText = yT;
+    xpos = x;
+    ypos = y;
+    Width = w;
+    Height = h;
+    Data = dat;
+  }
+  
+  void display(){
+    // Write Axis Text
+    fill(graphColor);
+    textSize(20);
+    textAlign(CENTER, CENTER);
+    text(xText, xpos, ypos);
+    rotate(PI/2);
+    text(yText, xpos, ypos);
+    
+    //for (int i = 0; i < Data.length; i++){
+      line(30, 20, 85, 20);
+    //}
+    
+    stroke(lineColor);
+  }
+}

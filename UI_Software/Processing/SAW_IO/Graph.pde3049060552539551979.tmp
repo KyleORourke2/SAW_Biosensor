@@ -17,9 +17,6 @@ class Graph {
   float[] DataX;
   float[] DataXS; // Scaled x axis data for visualization.
   float[] DataY;
-  float[] DataYS;
-  
-  Button smooth;
   
   // Constructor
   // positions x y, dimensions w h, color body, color text
@@ -35,24 +32,20 @@ class Graph {
     DataX = dataX.clone();
     DataXS = dataX.clone();
     DataY = dataY.clone();
-    DataYS = dataY.clone();
     
     
     // Scale data to fill entire length of graph box
-    DataXS = arrayScale_X(DataXS, Width);
-    DataYS = arrayScale_Y(DataYS, ypos, Height);
+    DataXS = arrayScale_X(DataXS, Width, Height);
     // Adjust array by xpos & ypos
     DataXS = arrayShift(DataXS, xpos);
-    DataYS = arrayShift(DataYS, ypos);
+    DataY = arrayShift(DataY, ypos);
     // Set Y values to correct coordinate system.
-    DataYS = arrayFlip(DataYS, ypos);
+    DataY = arrayFlip(DataY, ypos);
     
-    smooth = new Button(xpos+Width/2, ypos+55, 120, 50, ucscBlue, greenText, lightGrey, "Smooth");
-
+    
   }
   
   public void display(){
-    
     // Write Axis & Title Text
     drawLabels(xpos, ypos, Width, Height);
     // Draw graph box:
@@ -64,31 +57,13 @@ class Graph {
     for(int i = 0; i < DataXS.length-1; i++){
       strokeWeight(2);
       stroke(lineColor);
-      line(DataXS[i], DataYS[i], DataXS[i+1], DataYS[i+1]);
+      line(DataXS[i], DataY[i], DataXS[i+1], DataY[i+1]);
     }
     
-    smooth.display();
   } // Display end
   
   
   // HELPER FUNCTIONS:
-  
-  // Check if the was clicked location has an action
-  void click(int mx, int my){
-    if(smooth.wasClicked(mx, my)){ // button action.
-      exit();
-    }
-  }
-  
-  // Check if a click is in an action area.
-  boolean wasClicked(int mx, int my){
-    if(mx >= xpos && mx <= xpos + Width){
-      if(my >= ypos && my <= ypos + Height){
-        return true;
-      }
-    }
-    return false; // Didn't meet both conditions
-  }
   
   // Draw text
   private void drawLabels(int x, int y, int w, int h){
@@ -120,7 +95,7 @@ class Graph {
       text(int((lastVal/10)*i), x+(i*(w/10)), y+10);
     }
     
-    // Vertical
+    //float lastY =
     
   }
   
@@ -152,33 +127,18 @@ class Graph {
   }
   
   // Scales data to fit graph box
-  private float [] arrayScale_X(float[] data, int w){
+  private float [] arrayScale_X(float[] data, int w, int h){
     float x_scaleFactor = (w/data[data.length-1]);
     data = arrayMult(data, x_scaleFactor);
-    return data;
-  }
-  
-  // Scales data to fit graph box vertically
-  private float [] arrayScale_Y(float[] data, int ypos, int h){
     
-    float maxVal = data[findMax(data)];
-    float minVal = data[findMin(data)];
-    float valRange = abs(maxVal-minVal);
-    
-    float y_scaleFactor = (h/valRange);
-    data = arrayMult(data, y_scaleFactor);
-    
-    // Now shift the graph into frame.
-    if(data[findMax(data)] > h){
-      data = arrayShift(data, -(data[findMax(data)]-h));
-    }
-    if(data[findMin(data)] < 0){
-      data = arrayShift(data, 0-(data[findMin(data)]));
-    }
+    int maxVal = findMax(data);
+    int minVal = findMin(data);
+    //float valRange = abs(maxVal-minVal);
+    //float y_scaleFactor = (h/data[findMax(data)]);
+    //data = arrayMult(data, y_scaleFactor);
     
     return data;
   }
-  
   
   // Find max value location. (-1 if failed)
   private int findMax(float[] data){
@@ -207,7 +167,7 @@ class Graph {
   }
   
   // Shifts all of array's values by set amount.
-  private float [] arrayShift(float[] data, float shift){
+  private float [] arrayShift(float[] data, int shift){
     for (int i = 0; i < data.length; i++){
       data[i] += shift;
     }

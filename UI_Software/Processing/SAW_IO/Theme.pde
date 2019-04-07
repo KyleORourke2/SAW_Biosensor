@@ -26,6 +26,14 @@ color exitFill = #ff3d00;
 color exitStroke = #0077c2; //#fafafa;
 color exitText = #fafafa;
 
+// Graph colors
+color lineColor = #000000;
+color graphColor = 0;
+color gridLine = color(0, 100, 0);
+color greenText = color(141, 244, 66);  // Color of text.
+color ch1_color = color(255, 160, 20);  // Color of channel 1 data.
+color ch2_color = color(20, 160, 255);
+color ch3_color = color(141, 244, 66);
 
 // Background
 color lightGrey = color(245,245,246);
