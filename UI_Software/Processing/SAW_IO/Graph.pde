@@ -47,7 +47,7 @@ class Graph {
     // Set Y values to correct coordinate system.
     DataYS = arrayFlip(DataYS, ypos);
     
-    smooth = new Button(xpos+Width/2, ypos+55, 120, 50, ucscBlue, greenText, lightGrey, "Smooth");
+    smooth = new Button(xpos+Width/2, ypos+55, 125, 50, ucscBlue, greenText, lightGrey, "Example");
 
   }
   
