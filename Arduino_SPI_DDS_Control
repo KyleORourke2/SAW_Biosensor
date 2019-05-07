@@ -1,0 +1,104 @@
+/*
+  DDS SPI Sweeper
+  By Jackson Atwater & Kyle O'Rourke
+  05 May 2019
+*/
+
+
+// inslude the SPI library:
+#include <SPI.h>
+#include <stdlib.h> // <---Jackson adding standard library because not sure if was done before
+
+
+// set pin 10 as the slave select for the arduino/DDS:
+const int slaveSelectPin = 10;
+int callCounter = 0;
+
+
+void setup() {
+  Serial.begin(9600);  
+  SPI.begin();                    // initialize SPI
+
+  pinMode(slaveSelectPin, OUTPUT); // set the slaveSelectPin as an output
+  delay(1000);
+
+  SPI.transfer(0xFF);
+  delay(1000);
+}
+
+void loop() {
+  int punchIt = 1; //enable/disable automatic sweep
+  sweepDDS(punchIt);
+  //exit(0);
+}
+
+//helper functions below:
+
+void DDSWrite_32(unsigned int address, double value) {
+  digitalWrite(slaveSelectPin, LOW);            // take the SS pin low to select the chip:
+  SPI.transfer(address);                       //  send in the address and value via SPI:
+  SPI.transfer(&value, 4);                    // transfer the 4 bytes of the 32-bit FTW
+  digitalWrite(slaveSelectPin, HIGH);        // take the SS pin high to de-select the chip:
+}
+
+void DDSWrite_8(unsigned int address, int value) {
+  digitalWrite(slaveSelectPin, LOW);            // take the SS pin low to select the chip:
+  SPI.transfer(address);                       //  send in the address via SPI
+  SPI.transfer(value);                        // transfer the value via SPI
+  digitalWrite(slaveSelectPin, HIGH);        // take the SS pin high to de-select the chip:
+}
+
+void updateChannelFreqs(double RFfreq, double LOfreq) {
+  
+//  Serial.print("RF: ");
+//  Serial.print(RFfreq);
+//  Serial.print(" LF: ");
+//  Serial.println(LOfreq);
+
+  
+  double ftwRF = MHzToFTW(RFfreq);
+  double ftwLO = MHzToFTW(LOfreq);
+  uint8_t channelSelect = 16;        //should be an 8-bit number with bit 4 hot
+  DDSWrite_8(0x00, channelSelect);   //write bit 4 of 0x00 to select channel 0
+  DDSWrite_32(0x04, ftwRF);          //increment the RF channel FTW
+  channelSelect = 0;
+  DDSWrite_8 (0x00, channelSelect);  //close off channels
+  channelSelect = 32;                //should be an 8-bit number with bit 5 hot
+  DDSWrite_8 (0x00, channelSelect);  //write bit 5 of 0x00 to select channel 1
+  DDSWrite_32(0x04, ftwLO);          //increment the LO channel FTW
+  channelSelect = 0;
+  DDSWrite_8 (0x00, channelSelect);  //close off channels
+}
+
+double MHzToFTW(double MHzFrequency) {         //given a freq, return a 32-bit FTW
+  double FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  return (double) MHzFrequency / FTWconst;   //return FTW
+}
+
+double FTWtoMHz(double FTW) {                 //given a 32-bit FTW, return a freq
+  double FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  return ( double) FTWconst * FTW;
+}
+
+//basically the actual main() below:
+
+void sweepDDS(int punchIt)  {
+  //first set starting frequency and other necessary things:
+  double RFfreq = 40000000;
+  double LOfreq = 39999000;
+  updateChannelFreqs(RFfreq, LOfreq);     //set RF, LO channels to their  starting freqs
+
+  while (RFfreq < 60000000) {           //while frequency is less than 60MHz,
+    delay(1);
+    if (punchIt == 1) {
+      RFfreq += 1000; //increment RF channel frequency
+      LOfreq += 1000; //increment LO channel frequency
+      updateChannelFreqs(RFfreq, LOfreq); // update up RF and LO channel freqs
+      // sample & write ADC output to memory (!!!KYLE WHAT DO I DO!)
+      // look up analog read example for arduino.
+      // look up "processing" for arduino.
+      //when debugging with DDS, print out the commands we are sending to the serial monitor. thats pretty much the only way to debug.
+    }
+  }
+  Serial.println("got out of while loop in sweepDDS. Show is over.");
+}
