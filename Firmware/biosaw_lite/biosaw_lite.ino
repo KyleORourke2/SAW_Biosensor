@@ -41,12 +41,12 @@ void setup() {
   digitalWrite(CS, HIGH); // Ensure slave select high
   SPI.begin();
 
+  dds_setup();
   
   Serial.println("Startup Finished.");
 }
 
 void loop() {
-
   
 }
 
@@ -54,25 +54,24 @@ void loop() {
 // Set control registers. From Pg.36 Table 28.
 int dds_setup(){
   
-  // Channel Select Register:
+  // Channel Select Register: CSR
   ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01
                          // (10000010)
   
-  // Function Register 1:
-  ddsWrite_24(FR1, 0x00D00020);
+  // Function Register 1: FR1
   // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
   // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
   // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
+  ddsWrite_24(FR1, 0x00D00020);
 
-  // Channel Function Register:
-  ddsWrite_24();
+  // Channel Function Register: CFR
+  ddsWrite_24(CFR, 0x);
 }
 
 
 
 // Simple function for writing 8 bit values
-// 1 byte = 8 bits (Arduino)
-// 1 hex val = 4 bits
+// 1 byte = 8 bits (Arduino), 1 hex val = 4 bits
 void ddsWrite_8(byte address, byte val){
   spiBegin();
   SPI.transfer(address);
@@ -121,6 +120,7 @@ void spiEnd(){
 }
 
 // Simple LED control function
+// Set LED values between 0 to 255.
 void leds(int R, int G, int B) {
   analogWrite(red_led, 255-R);
   analogWrite(green_led, 255-G);
