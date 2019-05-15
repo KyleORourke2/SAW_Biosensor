@@ -7,11 +7,15 @@
 
 #include <SPI.h>
 
-#define CSR 0x00
-#define FR1 0x01
-#define FR2 0x02
-#define CFR 0x03
-#define CFW 0x04
+#define ref_clk 25000000
+#define sys_clk 500000000
+#define m32     4294967296
+
+#define CSR  0x00
+#define FR1  0x01
+#define FR2  0x02
+#define CFR  0x03
+#define CFTW 0x04
 
 const int CS = 10;       // Chip select
 const int rst_dds = 2;   // DDS reset pin.
@@ -55,22 +59,27 @@ void loop() {
 int dds_setup(){
 
   // Reset DDS:
-  
+  // Maybe...
   
   // Channel Select Register: CSR
-  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01
-                         // (10000010)
-  
+  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)
+
   // Function Register 1: FR1
   // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
   // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
   // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
-  ddsWrite_24(FR1, 0x00D00020);
+  ddsWrite_24(FR1, 0xD00020);
+
+  // Function Register 2: FR2
+  // ddsWrite_16(FR2, 0x0000); // Default values.
 
   // Channel Function Register: CFR
-  ddsWrite_24(CFR, 0x);
-}
+  // ddsWrite_24(CFR, 0x000302); // Default values.
 
+  // Channel Frequency Tuning Word 0: CFTW
+  // FTW 
+  ddsWrite_32(CFTW, 0x);
+}
 
 
 // Simple function for writing 8 bit values
