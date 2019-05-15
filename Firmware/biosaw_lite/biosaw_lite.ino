@@ -7,6 +7,10 @@
 
 #include <SPI.h>
 
+#define ref_clk 25000000
+#define sys_clk 500000000
+#define m32     4294967296
+
 #define CSR 0x00
 #define FR1 0x01
 #define FR2 0x02
@@ -41,6 +45,7 @@ void setup() {
   digitalWrite(CS, HIGH); // Ensure slave select high
   SPI.begin();
 
+  dds_setup();
 
   Serial.println("Startup Finished.");
 }
@@ -53,21 +58,81 @@ void loop() {
 // Set control registers. From AD9959 datasheet Pg.36 Table 28.
 int dds_setup(){
   
-  // Channel Select Register:
-  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01
-                         // (10000010)
+  // Reset DDS
+  ddsReset();
+
+  // Channel Select Register: CSR (0x00)
+  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)
   
-  // Function Register 1:
-  ddsWrite_24(FR1, 0x00D00020);
+  // Function Register 1: FR1 (0x01)
   // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
   // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
   // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
+  ddsWrite_24(FR1, 0xD00020);
+  
+  // Function Register 2: FR2 (0x02)
+  // ddsWrite_16(FR2, 0x0000); // Default values.
 
-  // Channel Function Register:
-  ddsWrite_24();
+  // Channel Function Register: CFR (0x03)
+  // ddsWrite_24(CFR, 0x000302); // Default values.
+  
+
 }
 
 
+// Sets the frequency of a given channel.
+void updateChannelFreqs(long RFfreq, long LOfreq) {  
+  long ftwRF = MHzToFTW(RFfreq);
+  long ftwLO = MHzToFTW(LOfreq);
+  byte channelSelect = 16;        //define channelSelect as an 8-bit number with bit 4 hot
+  ddsWrite_8(0x00, channelSelect);   //write bit 4 of 0x00 to select channel 0
+  ddsWrite_32(0x04, ftwRF);          //increment the RF channel FTW
+  channelSelect = 0;
+  ddsWrite_8(0x00, channelSelect);  //close off channels
+  channelSelect = 32;                //set Channelselect as an 8-bit number with bit 5 hot
+  ddsWrite_8 (0x00, channelSelect);  //write bit 5 of 0x00 to select channel 1
+  ddsWrite_32(0x04, ftwLO);          //increment the LO channel FTW
+  channelSelect = 0;
+  ddsWrite_8 (0x00, channelSelect);  //close off channels
+}
+
+long MHzToFTW(long MHzFrequency) {         //given a freq, return a 32-bit FTW
+  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  return (long) MHzFrequency / FTWconst;   //return FTW
+}
+
+long FTWtoMHz(long FTW) {                 //given a 32-bit FTW, return a freq
+  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  return (long) FTW * FTWconst;
+}
+
+//sweepDDS is basically the actual main() below:
+void sweepDDS(int punchIt)  {
+  //first set starting frequency and other necessary things:
+  long RFfreq = 40000000;
+  long LOfreq = 39999000;
+  updateChannelFreqs(RFfreq, LOfreq);     //set RF, LO channels to their  starting freqs
+
+  while (RFfreq < 60000000) {           //while frequency is less than 60MHz,
+    delay(1);
+    if (punchIt == 1) {
+      RFfreq += 1000; //increment RF channel frequency
+      LOfreq += 1000; //increment LO channel frequency
+      updateChannelFreqs(RFfreq, LOfreq); // update up RF and LO channel freqs
+      // sample & write ADC output to memory (!!!KYLE WHAT DO I DO!)
+      // look up analog read example for arduino.
+      // look up "processing" for arduino.
+    }
+  }
+  Serial.println("got out of while loop in sweepDDS. Show is over.");
+}
+
+
+void ddsReset(){
+  // Pulse reset pin:
+  pulse(rst_dds);
+  
+}
 
 // Simple function for writing 8 bit values
 // 1 byte = 8 bits (Arduino)
@@ -119,55 +184,16 @@ void spiEnd(){
   digitalWrite(CS, HIGH);  // Disable slave select.
 }
 
+// Pulses given pin.
+void pulse(uint8_t pin){
+  digitalWrite(pin, LOW);
+  digitalWrite(pin, HIGH);
+  digitalWrite(pin, LOW);
+}
+
 // Simple LED control function
 void leds(int R, int G, int B) {
   analogWrite(red_led, 255-R);
   analogWrite(green_led, 255-G);
   analogWrite(blue_led, 255-B);
-}
-
-void updateChannelFreqs(long RFfreq, long LOfreq) {  
-  long ftwRF = MHzToFTW(RFfreq);
-  long ftwLO = MHzToFTW(LOfreq);
-  byte channelSelect = 16;        //define channelSelect as an 8-bit number with bit 4 hot
-  ddsWrite_8(0x00, channelSelect);   //write bit 4 of 0x00 to select channel 0
-  ddsWrite_32(0x04, ftwRF);          //increment the RF channel FTW
-  channelSelect = 0;
-  ddsWrite_8(0x00, channelSelect);  //close off channels
-  channelSelect = 32;                //set Channelselect as an 8-bit number with bit 5 hot
-  ddsWrite_8 (0x00, channelSelect);  //write bit 5 of 0x00 to select channel 1
-  ddsWrite_32(0x04, ftwLO);          //increment the LO channel FTW
-  channelSelect = 0;
-  ddsWrite_8 (0x00, channelSelect);  //close off channels
-}
-
-long MHzToFTW(long MHzFrequency) {         //given a freq, return a 32-bit FTW
-  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
-  return (long) MHzFrequency / FTWconst;   //return FTW
-}
-
-long FTWtoMHz(long FTW) {                 //given a 32-bit FTW, return a freq
-  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
-  return (long) FTW * FTWconst;
-}
-
-//sweepDDS is basically the actual main() below:
-void sweepDDS(int punchIt)  {
-  //first set starting frequency and other necessary things:
-  long RFfreq = 40000000;
-  long LOfreq = 39999000;
-  updateChannelFreqs(RFfreq, LOfreq);     //set RF, LO channels to their  starting freqs
-
-  while (RFfreq < 60000000) {           //while frequency is less than 60MHz,
-    delay(1);
-    if (punchIt == 1) {
-      RFfreq += 1000; //increment RF channel frequency
-      LOfreq += 1000; //increment LO channel frequency
-      updateChannelFreqs(RFfreq, LOfreq); // update up RF and LO channel freqs
-      // sample & write ADC output to memory (!!!KYLE WHAT DO I DO!)
-      // look up analog read example for arduino.
-      // look up "processing" for arduino.
-    }
-  }
-  Serial.println("got out of while loop in sweepDDS. Show is over.");
 }
