@@ -41,17 +41,18 @@ void setup() {
   digitalWrite(CS, HIGH); // Ensure slave select high
   SPI.begin();
 
-  
+
   Serial.println("Startup Finished.");
 }
 
 void loop() {
-
-  
+ int punchIt = 1; // enable(1) or disable(0) automatic sweep
+  sweepDDS(punchIt);
+  //exit(0);
 }
 
 
-// Set control registers. From Pg.36 Table 28.
+// Set control registers. From AD9959 datasheet Pg.36 Table 28.
 int dds_setup(){
   
   // Channel Select Register:
@@ -125,4 +126,50 @@ void leds(int R, int G, int B) {
   analogWrite(red_led, 255-R);
   analogWrite(green_led, 255-G);
   analogWrite(blue_led, 255-B);
+}
+
+void updateChannelFreqs(long RFfreq, long LOfreq) {  
+  long ftwRF = MHzToFTW(RFfreq);
+  long ftwLO = MHzToFTW(LOfreq);
+  byte channelSelect = 16;        //define channelSelect as an 8-bit number with bit 4 hot
+  ddsWrite_8(0x00, channelSelect);   //write bit 4 of 0x00 to select channel 0
+  ddsWrite_32(0x04, ftwRF);          //increment the RF channel FTW
+  channelSelect = 0;
+  ddsWrite_8(0x00, channelSelect);  //close off channels
+  channelSelect = 32;                //set Channelselect as an 8-bit number with bit 5 hot
+  ddsWrite_8 (0x00, channelSelect);  //write bit 5 of 0x00 to select channel 1
+  ddsWrite_32(0x04, ftwLO);          //increment the LO channel FTW
+  channelSelect = 0;
+  ddsWrite_8 (0x00, channelSelect);  //close off channels
+}
+
+long MHzToFTW(long MHzFrequency) {         //given a freq, return a 32-bit FTW
+  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  return (long) MHzFrequency / FTWconst;   //return FTW
+}
+
+long FTWtoMHz(long FTW) {                 //given a 32-bit FTW, return a freq
+  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  return (long) FTW * FTWconst;
+}
+
+//sweepDDS is basically the actual main() below:
+void sweepDDS(int punchIt)  {
+  //first set starting frequency and other necessary things:
+  long RFfreq = 40000000;
+  long LOfreq = 39999000;
+  updateChannelFreqs(RFfreq, LOfreq);     //set RF, LO channels to their  starting freqs
+
+  while (RFfreq < 60000000) {           //while frequency is less than 60MHz,
+    delay(1);
+    if (punchIt == 1) {
+      RFfreq += 1000; //increment RF channel frequency
+      LOfreq += 1000; //increment LO channel frequency
+      updateChannelFreqs(RFfreq, LOfreq); // update up RF and LO channel freqs
+      // sample & write ADC output to memory (!!!KYLE WHAT DO I DO!)
+      // look up analog read example for arduino.
+      // look up "processing" for arduino.
+    }
+  }
+  Serial.println("got out of while loop in sweepDDS. Show is over.");
 }
