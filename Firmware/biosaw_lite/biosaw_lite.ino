@@ -46,9 +46,7 @@ void setup() {
 }
 
 void loop() {
- int punchIt = 1; // enable(1) or disable(0) automatic sweep
-  sweepDDS(punchIt);
-  //exit(0);
+
 }
 
 
