@@ -53,6 +53,9 @@ void loop() {
 
 // Set control registers. From Pg.36 Table 28.
 int dds_setup(){
+
+  // Reset DDS:
+  
   
   // Channel Select Register: CSR
   ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01
