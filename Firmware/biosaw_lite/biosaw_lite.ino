@@ -11,11 +11,11 @@
 #define sys_clk 500000000
 #define max32   4294967296
 
-#define CSR  0x00
-#define FR1  0x01
-#define FR2  0x02
-#define CFR  0x03
-#define CFTW 0x04
+const byte CSR  = 0x00;
+const byte FR1  = 0x01;
+const byte FR2  = 0x02;
+const byte CFR  = 0x03;
+const byte CFTW = 0x04;
 
 
 const int rst_dds = 2;   // DDS reset pin.
@@ -47,19 +47,19 @@ void setup() {
 
   // Set init pin values:
   dleds(0,0,0);
-  //leds(0, 20, 10); // Turn on LED for visual verification.
   digitalWrite(P0, LOW);  // Ensure profile pin 0 low.
-  digitalWrite(CS, HIGH); // Ensure slave select high
+  digitalWrite(CS, LOW); // Ensure slave select high
   
-
+  
   dds_setup();
   updateChannelFreqs(50000000);
+
   
   Serial.println("Startup Finished.");
 }
 
 void loop() {
-  //updateChannelFreqs(10000000);
+  updateChannelFreqs(50000000);
 }
 
 
@@ -76,7 +76,7 @@ int dds_setup(){
   // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
   // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
   // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
-  ddsWrite_24(FR1, 0xD00020); // 1101 0000 0000 0000 0010 0000
+  ddsWrite_24(FR1, 0xD00000); // 1101 0000 0000 0000 0010 0000
   
   // Function Register 2: FR2 (0x02)
   // ddsWrite_16(FR2, 0x0000); // Default values.
@@ -179,12 +179,12 @@ void ddsWrite_32(byte address, long val){
 
 void spiBegin(){
   SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-  digitalWrite(CS, LOW);  // Enable slave select.
+  //digitalWrite(CS, LOW);  // Enable slave select.
   delay(1);               // Wait for chip to enable.
 }
 
 void spiEnd(){
-  digitalWrite(CS, HIGH);  // Disable slave select.
+  //digitalWrite(CS, HIGH);  // Disable slave select.
   SPI.endTransaction();
 }
 
@@ -192,7 +192,6 @@ void spiEnd(){
 void pulse(uint8_t pin){
   digitalWrite(pin, LOW);
   digitalWrite(pin, HIGH);
-  delay(1);
   digitalWrite(pin, LOW);
 }
 
