@@ -59,7 +59,7 @@ void loop() {
 int dds_setup(){
 
   // Reset DDS:
-  // Maybe...
+  // 
   
   // Channel Select Register: CSR
   ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)
@@ -76,11 +76,16 @@ int dds_setup(){
   // Channel Function Register: CFR
   // ddsWrite_24(CFR, 0x000302); // Default values.
 
-  // Channel Frequency Tuning Word 0: CFTW
+  // Channel Frequency Tuning Word 0: CFTW 0x04
   // FTW 
   ddsWrite_32(CFTW, 0x);
 }
 
+void ddsReset(){
+  // Pulse reset pin:
+  pulse(rst_dds);
+  
+}
 
 // Simple function for writing 8 bit values
 // 1 byte = 8 bits (Arduino), 1 hex val = 4 bits
@@ -137,4 +142,9 @@ void leds(int R, int G, int B) {
   analogWrite(red_led, 255-R);
   analogWrite(green_led, 255-G);
   analogWrite(blue_led, 255-B);
+}
+
+void pulse(uint8_t pin){
+  digitalWrite(pin, HIGH);
+  digitalWrite(pin, LOW);
 }
