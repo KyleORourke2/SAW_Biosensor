@@ -9,18 +9,23 @@
 
 #define ref_clk 25000000
 #define sys_clk 500000000
-#define m32     4294967296
+#define max32   4294967296
 
-#define CSR 0x00
-#define FR1 0x01
-#define FR2 0x02
-#define CFR 0x03
-#define CFW 0x04
+#define CSR  0x00
+#define FR1  0x01
+#define FR2  0x02
+#define CFR  0x03
+#define CFTW 0x04
 
-const int CS = 10;       // Chip select
+
 const int rst_dds = 2;   // DDS reset pin.
 const int io_update = 4; // DDS I/O update toggle.
 const int P0 = 8;        // Sweep control pin
+
+const int CS = 10;       // Chip select
+//const int MOSI = 11;       // SPI MOSI
+//const int MISO = 12;       // SPI MISO
+//const int SCK = 13;       // SPI SCK
 
 const int red_led = 3;   // RGB LED
 const int green_led = 5;
@@ -28,6 +33,7 @@ const int blue_led = 6;
 
 void setup() {
   Serial.begin(115200);
+  SPI.begin();
   Serial.println("BioLite Startup...");
 
   // Set pinModes:
@@ -40,18 +46,20 @@ void setup() {
   pinMode(blue_led, OUTPUT);
 
   // Set init pin values:
-  leds(0, 20, 10); // Turn on LED for visual verification.
+  dleds(0,0,0);
+  //leds(0, 20, 10); // Turn on LED for visual verification.
   digitalWrite(P0, LOW);  // Ensure profile pin 0 low.
   digitalWrite(CS, HIGH); // Ensure slave select high
-  SPI.begin();
+  
 
   dds_setup();
-
+  updateChannelFreqs(50000000);
+  
   Serial.println("Startup Finished.");
 }
 
 void loop() {
-
+  //updateChannelFreqs(10000000);
 }
 
 
@@ -68,7 +76,7 @@ int dds_setup(){
   // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
   // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
   // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
-  ddsWrite_24(FR1, 0xD00020);
+  ddsWrite_24(FR1, 0xD00020); // 1101 0000 0000 0000 0010 0000
   
   // Function Register 2: FR2 (0x02)
   // ddsWrite_16(FR2, 0x0000); // Default values.
@@ -76,37 +84,32 @@ int dds_setup(){
   // Channel Function Register: CFR (0x03)
   // ddsWrite_24(CFR, 0x000302); // Default values.
   
-
+  delay(10); // Wait for system to settle.
 }
 
 
 // Sets the frequency of a given channel.
-void updateChannelFreqs(long RFfreq, long LOfreq) {  
+void updateChannelFreqs(long RFfreq) { 
+  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (1000 0010)
   long ftwRF = MHzToFTW(RFfreq);
-  long ftwLO = MHzToFTW(LOfreq);
-  byte channelSelect = 16;        //define channelSelect as an 8-bit number with bit 4 hot
-  ddsWrite_8(0x00, channelSelect);   //write bit 4 of 0x00 to select channel 0
-  ddsWrite_32(0x04, ftwRF);          //increment the RF channel FTW
-  channelSelect = 0;
-  ddsWrite_8(0x00, channelSelect);  //close off channels
-  channelSelect = 32;                //set Channelselect as an 8-bit number with bit 5 hot
-  ddsWrite_8 (0x00, channelSelect);  //write bit 5 of 0x00 to select channel 1
-  ddsWrite_32(0x04, ftwLO);          //increment the LO channel FTW
-  channelSelect = 0;
-  ddsWrite_8 (0x00, channelSelect);  //close off channels
+  ddsWrite_32(CFTW, ftwRF);  //increment the RF channel FTW
+  pulse(io_update);
+
+  //ddsWrite_8(CSR, 0x02);  //close off channels
 }
 
 long MHzToFTW(long MHzFrequency) {         //given a freq, return a 32-bit FTW
-  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  long FTWconst = (sys_clk / max32); //define freq <--> FTW conversion constant
   return (long) MHzFrequency / FTWconst;   //return FTW
 }
 
 long FTWtoMHz(long FTW) {                 //given a 32-bit FTW, return a freq
-  long FTWconst = (500000000 / 4294967296); //define freq <--> FTW conversion constant
+  long FTWconst = (sys_clk / max32); //define freq <--> FTW conversion constant
   return (long) FTW * FTWconst;
 }
 
 //sweepDDS is basically the actual main() below:
+/*
 void sweepDDS(int punchIt)  {
   //first set starting frequency and other necessary things:
   long RFfreq = 40000000;
@@ -126,12 +129,11 @@ void sweepDDS(int punchIt)  {
   }
   Serial.println("got out of while loop in sweepDDS. Show is over.");
 }
-
+*/
 
 void ddsReset(){
-  // Pulse reset pin:
-  pulse(rst_dds);
-  
+  pulse(rst_dds); // Pulse reset pin.
+  //pulse(io_update); // Pulse IO update.
 }
 
 // Simple function for writing 8 bit values
@@ -176,18 +178,21 @@ void ddsWrite_32(byte address, long val){
 }
 
 void spiBegin(){
+  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
   digitalWrite(CS, LOW);  // Enable slave select.
   delay(1);               // Wait for chip to enable.
 }
 
 void spiEnd(){
   digitalWrite(CS, HIGH);  // Disable slave select.
+  SPI.endTransaction();
 }
 
 // Pulses given pin.
 void pulse(uint8_t pin){
   digitalWrite(pin, LOW);
   digitalWrite(pin, HIGH);
+  delay(1);
   digitalWrite(pin, LOW);
 }
 
@@ -196,4 +201,11 @@ void leds(int R, int G, int B) {
   analogWrite(red_led, 255-R);
   analogWrite(green_led, 255-G);
   analogWrite(blue_led, 255-B);
+}
+
+// Simple LED control function
+void dleds(int R, int G, int B) {
+  digitalWrite(red_led, 1-R);
+  digitalWrite(green_led, 1-G);
+  digitalWrite(blue_led, 1-B);
 }
