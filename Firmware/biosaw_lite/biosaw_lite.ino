@@ -34,6 +34,9 @@ const int blue_led = 6;
 void setup() {
   Serial.begin(115200);
   SPI.begin();
+  SPI.setClockDivider(SPI_CLOCK_DIV32);
+
+  delay(10);
   Serial.println("BioLite Startup...");
 
   // Set pinModes:
@@ -55,7 +58,7 @@ void setup() {
   updateChannelFreqs(50000000);
 
   
-  Serial.println("Startup Finished.");
+   Serial.println("Startup Finished.");
 }
 
 void loop() {
@@ -67,7 +70,9 @@ void loop() {
 int dds_setup(){
   
   // Reset DDS
+  //Serial.println("rst start");
   ddsReset();
+  //Serial.println("rst stop");
 
   // Channel Select Register: CSR (0x00)
   ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)
@@ -178,14 +183,14 @@ void ddsWrite_32(byte address, long val){
 }
 
 void spiBegin(){
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  //SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
   //digitalWrite(CS, LOW);  // Enable slave select.
   delay(1);               // Wait for chip to enable.
 }
 
 void spiEnd(){
   //digitalWrite(CS, HIGH);  // Disable slave select.
-  SPI.endTransaction();
+  //SPI.endTransaction();
 }
 
 // Pulses given pin.
