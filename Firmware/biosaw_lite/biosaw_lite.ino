@@ -8,7 +8,7 @@
 #include <SPI.h>
 
 #define ref_clk 25000000
-#define sys_clk 500000000
+#define sys_clk 25000000 //we want 500000000, testing 25000000 for now
 #define max32   4294967296
 
 const byte CSR  = 0x00;
@@ -48,18 +48,19 @@ void setup() {
   // Set init pin values:
   dleds(0,0,0);
   digitalWrite(P0, LOW);  // Ensure profile pin 0 low.
-  digitalWrite(CS, LOW); // Ensure slave select high
+  digitalWrite(CS, LOW); // Ensure slave select h  igh
   
   
   dds_setup();
-  updateChannelFreqs(50000000);
+  //updateChannelFreqs(50000000);
 
   
   Serial.println("Startup Finished.");
 }
 
 void loop() {
-  updateChannelFreqs(50000000);
+  updateChannelFreqs(40000000);
+  //delay (10000); //wait 10 seconds in case the constant loop is fucking it up somehow
 }
 
 
@@ -67,16 +68,19 @@ void loop() {
 int dds_setup(){
   
   // Reset DDS
-  ddsReset();
+  ddsReset(); //at this point CSR should contain xF0
 
   // Channel Select Register: CSR (0x00)
-  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)
+  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)b 
   
   // Function Register 1: FR1 (0x01)
   // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
   // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
   // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
-  ddsWrite_24(FR1, 0xD00000); // 1101 0000 0000 0000 0010 0000
+  unsigned long FR1_val = 0x00A80000; // Sets the PLL to 10X.
+  Serial.print("\nFR1_val: "); 
+  Serial.println(FR1_val, HEX);
+  ddsWrite_24(FR1, FR1_val); // 1010 1000 0000 0000 0000 0000
   
   // Function Register 2: FR2 (0x02)
   // ddsWrite_16(FR2, 0x0000); // Default values.
@@ -89,31 +93,42 @@ int dds_setup(){
 
 
 // Sets the frequency of a given channel.
-void updateChannelFreqs(long RFfreq) { 
-  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (1000 0010)
-  long ftwRF = MHzToFTW(RFfreq);
+void updateChannelFreqs(unsigned long RFfreq) { 
+  //Serial.println("input RFfreq:");
+  //Serial.println(RFfreq);
+  //ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (1000 0010)
+  //unsigned long ftwRF = MHzToFTW(RFfreq);
+  unsigned long ftwRF = 171798691; //17179869; //  42949673 // FTW Max = 2147483648
+  Serial.println("Checking that FTW conv. worked outside:");
+  //unsigned long temp = FTWtoMHz(ftwRF);
+  //Serial.println(temp);
   ddsWrite_32(CFTW, ftwRF);  //increment the RF channel FTW
   pulse(io_update);
 
   //ddsWrite_8(CSR, 0x02);  //close off channels
 }
 
-long MHzToFTW(long MHzFrequency) {         //given a freq, return a 32-bit FTW
-  long FTWconst = (sys_clk / max32); //define freq <--> FTW conversion constant
-  return (long) MHzFrequency / FTWconst;   //return FTW
+unsigned long MHzToFTW(unsigned long MHzFrequency) {         //given a freq, return a 32-bit FTW
+  unsigned long FTWconst = (sys_clk / max32); //define freq <--> FTW conversion constant
+  return (unsigned long) (MHzFrequency / FTWconst);   //return FTW
 }
 
-long FTWtoMHz(long FTW) {                 //given a 32-bit FTW, return a freq
-  long FTWconst = (sys_clk / max32); //define freq <--> FTW conversion constant
-  return (long) FTW * FTWconst;
+unsigned long FTWtoMHz(unsigned long FTW) {                 //given a 32-bit FTW, return a freq
+  //Serial.println("FTW Inside helper:");
+  //Serial.println(FTW);
+  unsigned long FTWconst = (sys_clk / max32); //define freq <--> FTW conversion constant
+  unsigned long temp = (unsigned long) (FTW * FTWconst);
+  Serial.println("Checking conversion inside helper:");
+  Serial.println(temp);
+  return (unsigned long) (FTW * FTWconst);
 }
 
 //sweepDDS is basically the actual main() below:
 /*
 void sweepDDS(int punchIt)  {
   //first set starting frequency and other necessary things:
-  long RFfreq = 40000000;
-  long LOfreq = 39999000;
+  unsigned long RFfreq = 40000000;
+  unsigned long LOfreq = 39999000;
   updateChannelFreqs(RFfreq, LOfreq);     //set RF, LO channels to their  starting freqs
 
   while (RFfreq < 60000000) {           //while frequency is less than 60MHz,
@@ -155,22 +170,22 @@ void ddsWrite_16(byte address, int val){
 }
 
 // Simple function for writing 3 byte values
-void ddsWrite_24(byte address, long val){
+void ddsWrite_24(byte address, unsigned long val){
   byte a,b,c;
-  a=(val      &0xFF); //extract first byte
+  a=(val      &0xFF); //extract first byte (LS)
   b=((val>>8) &0xFF); //extract second byte
-  c=((val>>16)&0xFF); //extract third byte
+  c=((val>>16)&0xFF); //extract third byte (MS)
   
   spiBegin();
   SPI.transfer(address);
-  SPI.transfer(c); // We want to transfer MSB first.
+  SPI.transfer(a); // We want to transfer LSB first.
   SPI.transfer(b);
-  SPI.transfer(a);
+  SPI.transfer(c);
   spiEnd();
 }
 
 // Simple function for writing 4 byte values
-void ddsWrite_32(byte address, long val){
+void ddsWrite_32(byte address, unsigned long val){
   spiBegin();
   SPI.transfer(address);
   SPI.transfer(&val, 4);
@@ -178,7 +193,7 @@ void ddsWrite_32(byte address, long val){
 }
 
 void spiBegin(){
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(14000000, LSBFIRST, SPI_MODE0));
   //digitalWrite(CS, LOW);  // Enable slave select.
   delay(1);               // Wait for chip to enable.
 }
