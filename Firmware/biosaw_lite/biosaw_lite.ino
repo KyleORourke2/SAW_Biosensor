@@ -34,6 +34,9 @@ const int blue_led = 6;
 void setup() {
   Serial.begin(115200);
   SPI.begin();
+  SPI.setClockDivider(SPI_CLOCK_DIV32);
+
+  delay(10);
   Serial.println("BioLite Startup...");
 
   // Set pinModes:
@@ -55,7 +58,7 @@ void setup() {
   //updateChannelFreqs(50000000);
 
   
-  Serial.println("Startup Finished.");
+   Serial.println("Startup Finished.");
 }
 
 void loop() {
@@ -200,7 +203,7 @@ void spiBegin(){
 
 void spiEnd(){
   //digitalWrite(CS, HIGH);  // Disable slave select.
-  SPI.endTransaction();
+  //SPI.endTransaction();
 }
 
 // Pulses given pin.
