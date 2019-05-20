@@ -7,89 +7,108 @@
 
 #include <SPI.h>
 
-#define ref_clk 25000000
-#define sys_clk 25000000 //we want 500000000, testing 25000000 for now
-#define max32   4294967296
+// DDS VALUES:
+const int ref_clk = 25000000;             // 25Mhz external reference clock.
+const int sys_clk = 250000000;            // 250Mhz internal frequency from PLL.
+const float FTW_CFB = 0.05820766091;      // Constant used for finding FTW: 250MHz/(2^32)
+const float FTW_CBF = 4294967296/sys_clk; // Constant used for finding FTW: (2^32)/250MHz
 
-const byte CSR  = 0x00;
-const byte FR1  = 0x01;
-const byte FR2  = 0x02;
-const byte CFR  = 0x03;
-const byte CFTW = 0x04;
+// DDS REGISTERS:
+const byte CSR  = 0x00; // Channel Select Register
+const byte FR1  = 0x01; // Function Register
+const byte FR2  = 0x02; // Function Register
+const byte CFR  = 0x03; // Channel Function Register
+const byte CFTW = 0x04; // Channel Frequency Tunning Word
 
+// DDS REGISTER VALUES:
+// Sets the value to be sent to each register.
+const byte          CSR_V = 0x82;       // Set Ch.3 EN, I/O mode 3-wire is 01 (1000 0010)
+const unsigned long FR1_V = 0x00A80000; // Set VCO ON and PLL to 10x. for 
+const unsigned long FR2_V = 0x00;       // Unused.
+const unsigned long CFR_V = 0x00000302; // Set DAC FS current, Clear Phase accumulator.
+unsigned long      CFTW_V = 0x00;       // Value of the frequency tuning word.
 
+// PIN DEFINITIONS:
 const int rst_dds = 2;   // DDS reset pin.
 const int io_update = 4; // DDS I/O update toggle.
 const int P0 = 8;        // Sweep control pin
-
 const int CS = 10;       // Chip select
 //const int MOSI = 11;   // SPI MOSI
 //const int MISO = 12;   // SPI MISO
 //const int SCK = 13;    // SPI SCK
-
 const int red_led = 3;   // RGB LED
-const int green_led = 5;
-const int blue_led = 6;
+const int green_led = 5; // RGB LED
+const int blue_led = 6;  // RGB LED
 
+// SPI SETTINGS:
+SPISettings settings(20000000, MSBFIRST, SPI_MODE0); 
+
+
+// SETUP:
 void setup() {
-  Serial.begin(115200);
-  SPI.begin();
-  SPI.setClockDivider(SPI_CLOCK_DIV32);
 
-  delay(10);
+  // SERIAL SETUP:
+  Serial.begin(115200); // USER'S COMPUTER SERIAL COM SETUP (NOT SPI)
   Serial.println("BioLite Startup...");
+  Serial.print("FTW_CFB = "); Serial.println(FTW_CFB, 8);
+  Serial.print("Should be about: "); Serial.println("0.05820...");
+  Serial.print("FTW_CBF = "); Serial.println(FTW_CBF, 8);
+  Serial.print("Should be about: "); Serial.println("17.1798...");
+  delay(10);
+  
 
-  // Set pinModes:
-  pinMode(CS, OUTPUT);
-  pinMode(rst_dds, OUTPUT);
+  // PINMODE DEFINITIONS:
+  pinMode(CS,        OUTPUT);
+  pinMode(rst_dds,   OUTPUT);
   pinMode(io_update, OUTPUT);
-  pinMode(P0, OUTPUT);
-  pinMode(red_led, OUTPUT);
+  pinMode(P0,        OUTPUT);
+  pinMode(red_led,   OUTPUT);
   pinMode(green_led, OUTPUT);
-  pinMode(blue_led, OUTPUT);
+  pinMode(blue_led,  OUTPUT);
 
-  // Set init pin values:
+  // SET PIN INITIAL VALUES:
   dleds(0,0,0);
-  digitalWrite(P0, LOW);  // Ensure profile pin 0 low.
-  digitalWrite(CS, LOW); // Ensure slave select h  igh
+  digitalWrite(P0, LOW); // Ensure profile pin 0 low.
+  digitalWrite(CS, LOW); // Ensure slave select high to start.
   
-  
+  // SPI STARTUP MUST OCCUR AFTER PIN DEFINITIONS & BEFORE DDS SETUP:
+  SPI.begin();
+
+  // DDS SET INITIAL REGISTER VALUES:
   dds_setup();
-  //updateChannelFreqs(50000000);
 
-  
-   Serial.println("Startup Finished.");
+  // SETUP FINISHED:
+  Serial.println("Startup Finished.");
 }
 
+// MAIN LOOP:
 void loop() {
-  updateChannelFreqs(40000000);
-  //delay (10000); //wait 10 seconds in case the constant loop is fucking it up somehow
+
+  delay(1); // Small delay in main loop to prevent instability.
 }
 
 
-// Set control registers. From AD9959 datasheet Pg.36 Table 28.
+// DDS SETUP:
+// Reset DDS and set initial control registers. 
+// More information on AD9959 datasheet Pg.36 Table 28.
 int dds_setup(){
   
-  // Reset DDS
-  ddsReset(); //at this point CSR should contain xF0
+  // Toggle DDS Reset Pin:
+  ddsReset(); // AFTER RESET CSR SHOULD CONTAIN 0XF0
 
   // Channel Select Register: CSR (0x00)
-  ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)b 
+  ddsWrite_8(CSR, CSR_V);
   
   // Function Register 1: FR1 (0x01)
-  unsigned long FR1_val = 0x00A80000; // Sets the PLL to 10X.
-  ddsWrite_24(FR1, FR1_val); // 1010 1000 0000 0000 0000 0000
-  
-  // Function Register 2: FR2 (0x02)
-  // ddsWrite_16(FR2, 0x0000); // Default values.
+  ddsWrite_24(FR1, FR1_V);
 
   // Channel Function Register: CFR (0x03)
-  // ddsWrite_24(CFR, 0x000302); // Default values.
-  
+  ddsWrite_24(CFR, CFR_V);
+
   delay(10); // Wait for system to settle.
 }
 
-
+/*
 // Sets the frequency of a given channel.
 void updateChannelFreqs(unsigned long RFfreq) { 
   //Serial.println("input RFfreq:");
@@ -111,6 +130,7 @@ unsigned long MHzToFTW(unsigned long MHzFrequency) {         //given a freq, ret
   return (unsigned long) (MHzFrequency / FTWconst);   //return FTW
 }
 
+
 unsigned long FTWtoMHz(unsigned long FTW) {                 //given a 32-bit FTW, return a freq
   //Serial.println("FTW Inside helper:");
   //Serial.println(FTW);
@@ -120,37 +140,14 @@ unsigned long FTWtoMHz(unsigned long FTW) {                 //given a 32-bit FTW
   Serial.println(temp);
   return (unsigned long) (FTW * FTWconst);
 }
-
-//sweepDDS is basically the actual main() below:
-/*
-void sweepDDS(int punchIt)  {
-  //first set starting frequency and other necessary things:
-  unsigned long RFfreq = 40000000;
-  unsigned long LOfreq = 39999000;
-  updateChannelFreqs(RFfreq, LOfreq);     //set RF, LO channels to their  starting freqs
-
-  while (RFfreq < 60000000) {           //while frequency is less than 60MHz,
-    delay(1);
-    if (punchIt == 1) {
-      RFfreq += 1000; //increment RF channel frequency
-      LOfreq += 1000; //increment LO channel frequency
-      updateChannelFreqs(RFfreq, LOfreq); // update up RF and LO channel freqs
-      // sample & write ADC output to memory (!!!KYLE WHAT DO I DO!)
-      // look up analog read example for arduino.
-      // look up "processing" for arduino.
-    }
-  }
-  Serial.println("got out of while loop in sweepDDS. Show is over.");
-}
 */
 
 void ddsReset(){
   pulse(rst_dds); // Pulse reset pin.
+  pulse(io_update);
 }
 
 // Simple function for writing 8 bit values
-// 1 byte = 8 bits (Arduino)
-// 1 hex val = 4 bits
 void ddsWrite_8(byte address, byte val){
   spiBegin();
   SPI.transfer(address);
@@ -168,12 +165,10 @@ void ddsWrite_16(byte address, unsigned int val){
 
 // Simple function for writing 3 byte values (Untested)
 void ddsWrite_24(byte address, unsigned long val){
-  
   spiBegin();
   SPI.transfer(address);
-  SPI.transfer(&val, 3);
+  SPI.transfer(&val, 3);  // This works because arduino is little endian.
   spiEnd();
-
   /*
   byte a,b,c;
   a=(val      &0xFF); //extract first byte (LS)
@@ -198,14 +193,13 @@ void ddsWrite_32(byte address, unsigned long val){
 }
 
 void spiBegin(){
-  SPI.beginTransaction(SPISettings(14000000, LSBFIRST, SPI_MODE0));
-  digitalWrite(CS, LOW);  // Enable slave select.
-  delay(1);               // Wait for chip to enable.
+  SPI.beginTransaction(settings); // Define SPI settings before transfer.
+  digitalWrite(CS, LOW);          // Enable slave select.
 }
 
 void spiEnd(){
   digitalWrite(CS, HIGH);  // Disable slave select.
-  SPI.endTransaction();
+  SPI.endTransaction();    // End SPI transfer.
 }
 
 // Pulses given pin.
