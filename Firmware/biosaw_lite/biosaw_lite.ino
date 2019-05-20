@@ -23,9 +23,9 @@ const int io_update = 4; // DDS I/O update toggle.
 const int P0 = 8;        // Sweep control pin
 
 const int CS = 10;       // Chip select
-//const int MOSI = 11;       // SPI MOSI
-//const int MISO = 12;       // SPI MISO
-//const int SCK = 13;       // SPI SCK
+//const int MOSI = 11;   // SPI MOSI
+//const int MISO = 12;   // SPI MISO
+//const int SCK = 13;    // SPI SCK
 
 const int red_led = 3;   // RGB LED
 const int green_led = 5;
@@ -77,12 +77,7 @@ int dds_setup(){
   ddsWrite_8(CSR, 0x82); // Set Ch.3 EN, I/O mode 3-wire is 01 (10000010)b 
   
   // Function Register 1: FR1 (0x01)
-  // VCO gain[7], PLL divider[6:2], Charge pump[1:0]
-  // Open[7], PPC[6:4], RU/RD[3:2], Mod[1:0]
-  // RefClk[7], ExtPwrDwn[6], SYNC_CLK disable[5], ...
   unsigned long FR1_val = 0x00A80000; // Sets the PLL to 10X.
-  Serial.print("\nFR1_val: "); 
-  Serial.println(FR1_val, HEX);
   ddsWrite_24(FR1, FR1_val); // 1010 1000 0000 0000 0000 0000
   
   // Function Register 2: FR2 (0x02)
@@ -151,7 +146,6 @@ void sweepDDS(int punchIt)  {
 
 void ddsReset(){
   pulse(rst_dds); // Pulse reset pin.
-  //pulse(io_update); // Pulse IO update.
 }
 
 // Simple function for writing 8 bit values
@@ -165,15 +159,22 @@ void ddsWrite_8(byte address, byte val){
 }
 
 // Simple function for writing 16 bit values
-void ddsWrite_16(byte address, int val){
+void ddsWrite_16(byte address, unsigned int val){
   spiBegin();
   SPI.transfer(address);
   SPI.transfer(&val, 2);
   spiEnd();
 }
 
-// Simple function for writing 3 byte values
+// Simple function for writing 3 byte values (Untested)
 void ddsWrite_24(byte address, unsigned long val){
+  
+  spiBegin();
+  SPI.transfer(address);
+  SPI.transfer(&val, 3);
+  spiEnd();
+
+  /*
   byte a,b,c;
   a=(val      &0xFF); //extract first byte (LS)
   b=((val>>8) &0xFF); //extract second byte
@@ -185,6 +186,7 @@ void ddsWrite_24(byte address, unsigned long val){
   SPI.transfer(b);
   SPI.transfer(c);
   spiEnd();
+  */
 }
 
 // Simple function for writing 4 byte values
@@ -197,13 +199,13 @@ void ddsWrite_32(byte address, unsigned long val){
 
 void spiBegin(){
   SPI.beginTransaction(SPISettings(14000000, LSBFIRST, SPI_MODE0));
-  //digitalWrite(CS, LOW);  // Enable slave select.
+  digitalWrite(CS, LOW);  // Enable slave select.
   delay(1);               // Wait for chip to enable.
 }
 
 void spiEnd(){
-  //digitalWrite(CS, HIGH);  // Disable slave select.
-  //SPI.endTransaction();
+  digitalWrite(CS, HIGH);  // Disable slave select.
+  SPI.endTransaction();
 }
 
 // Pulses given pin.
@@ -213,14 +215,14 @@ void pulse(uint8_t pin){
   digitalWrite(pin, LOW);
 }
 
-// Simple LED control function
+// Simple LED control function PWM.
 void leds(int R, int G, int B) {
   analogWrite(red_led, 255-R);
   analogWrite(green_led, 255-G);
   analogWrite(blue_led, 255-B);
 }
 
-// Simple LED control function
+// Simple LED control function non-PWM.
 void dleds(int R, int G, int B) {
   digitalWrite(red_led, 1-R);
   digitalWrite(green_led, 1-G);
