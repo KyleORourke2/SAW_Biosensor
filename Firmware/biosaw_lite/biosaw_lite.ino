@@ -99,16 +99,17 @@ void setup() {
 // MAIN LOOP:
 void loop() {
   setFreqMhz(10);
-  for(int i = 1; i < 100; i++){
-    setFreqMhz(i);
-    delay(100);
+  for(unsigned int i = 40000; i <= 60000; i = i+500){
+    setFreqkHz(i);
+    delay(10);
     int adc1_in = analogRead(ADC_1); // ref
     int adc2_in = analogRead(ADC_2); // test
-    Serial.print("ADC: "); Serial.print(adc1_in); Serial.print("  ADC2: "); Serial.println(adc2_in);
+    //Serial.print("ADC: "); Serial.print(adc1_in); Serial.print("  ADC2: "); Serial.println(adc2_in);
     int adc_dif = adc2_in - adc1_in;
     float dif_vol = convVol(adc_dif);
     float dB_in   = convPwr(dif_vol);
-    //Serial.print("dB: "); Serial.print(dB_in, 5); Serial.print("  Freq (Mhz): "); Serial.println(i);
+  //Serial.print("dB: "); Serial.print(dB_in, 5); Serial.print("  Freq (Mhz): "); Serial.println(i);
+  Serial.print(dB_in, 5); Serial.print(", "); Serial.print(i); Serial.print(", "); Serial.print(adc1_in); Serial.print(", "); Serial.println(adc2_in); 
   }
   Serial.println("SWEEP END");
   delay(100000);
@@ -128,6 +129,12 @@ float convVol(int adc_val){
 
 // SETS THE OUTPUT OF THE DDS TO THE GIVEN FREQUENCY
 void setFrequency(float frequency){
+  if(frequency < 40000000){
+    dleds(1,0,0); // Current power detectors only go down to 40Mhz.
+  }
+  else{
+    dleds(0,0,0);
+  }
   CFTW_V = calc_FTW(frequency);
   ddsWrite_32(CFTW, CFTW_V); // FTW
   pulse(io_update);
@@ -151,7 +158,7 @@ unsigned long calc_FTW(float frequency){
 // DDS SETUP:
 // Reset DDS and set initial control registers. 
 // More information on AD9959 datasheet Pg.36 Table 28.
-int dds_setup(){
+void dds_setup(){
   
   // Toggle DDS Reset Pin:
   ddsReset(); // AFTER RESET CSR SHOULD CONTAIN 0XF0
