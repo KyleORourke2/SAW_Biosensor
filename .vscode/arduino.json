@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:pro",
+    "configuration": "cpu=8MHzatmega328",
+    "port": "COM19",
+    "sketch": "Firmware\\biosaw_lite\\biosaw_lite.ino"
+}
