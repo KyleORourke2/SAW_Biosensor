@@ -98,8 +98,9 @@ void setup() {
 
 // MAIN LOOP:
 void loop() {
+  //leds(100,0,0);
   setFreqMhz(10);
-  for(unsigned int i = 40000; i <= 60000; i = i+500){
+  for(unsigned int i = 40000; i <= 60000; i = i+10){
     setFreqkHz(i);
     delay(10);
     int adc1_in = analogRead(ADC_1); // ref
@@ -108,12 +109,12 @@ void loop() {
     int adc_dif = adc2_in - adc1_in;
     float dif_vol = convVol(adc_dif);
     float dB_in   = convPwr(dif_vol);
-  //Serial.print("dB: "); Serial.print(dB_in, 5); Serial.print("  Freq (Mhz): "); Serial.println(i);
-  Serial.print(dB_in, 5); Serial.print(", "); Serial.print(i); Serial.print(", "); Serial.print(adc1_in); Serial.print(", "); Serial.println(adc2_in); 
+    //Serial.print("dB: "); Serial.print(dB_in, 5); Serial.print("  Freq (Mhz): "); Serial.println(i);
+    Serial.print(dB_in, 5); Serial.print(", "); Serial.println(i);
   }
   Serial.println("SWEEP END");
-  delay(100000);
-
+  leds(0, 100, 50);
+  end();
 }
 
 // CONVERT VOLTAGE READING TO OUTPUT POWER:
