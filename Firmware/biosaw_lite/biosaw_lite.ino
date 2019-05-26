@@ -6,12 +6,15 @@
 // UCSC SDP
 
 #include <SPI.h>
+#include <string.h>
+#include <stdlib.h>
 
 // DDS VALUES:
 #define ref_clk 25000000          // 25Mhz external reference clock.
 #define sys_clk 500000000         // 500Mhz internal frequency from PLL.
 #define FTW_CFB 0.11641532182     // Constant used for finding FTW: 500MHz/(2^32)
 #define FTW_CBF 8.589934592       // Constant used for finding FTW: (2^32)/500MHz
+#define frqAdjust 0               // Value added to output frequency for calibration.
 
 // DDS REGISTERS:
 const byte CSR  = 0x00; // Channel Select Register
@@ -35,6 +38,12 @@ unsigned long CFTW_V = 0;  // Frequency tuning word. 32-bits.
 #define ext_vref 1.939  // Voltage on external voltage ref.
 const float voltMul = (ext_vref)/(1024); // Value of (ext_vref)/(2^10) Shoul be: 0.0018935546875
 
+// SWEEP VALUES
+const int sweepDelay = 1;           // Delay per frequency step in ms. (ADC SPS = 10kHz)
+unsigned long startFreq = 40000000; // Start frequency Hz
+unsigned long endFreq = 60000000;   // End frequency Hz
+
+
 // PIN DEFINITIONS:1
 const int rst_dds = 2;   // DDS reset pin.
 const int io_update = 4; // DDS I/O update toggle.
@@ -56,13 +65,15 @@ SPISettings settings(20000000, MSBFIRST, SPI_MODE0);
 void setup() {
 
   // SERIAL SETUP:
-  Serial.begin(115200); // USER'S COMPUTER SERIAL COM SETUP (NOT SPI)
+  Serial.begin(9600); // USER'S COMPUTER SERIAL COM SETUP (NOT SPI)
   Serial.print("BioLite Startup...\n");
   Serial.print("voltMul = "); Serial.print(voltMul, 9);
   Serial.print("  Should be: "); Serial.print("0.0018935546875\n");
   Serial.print("FTW_CFB = "); Serial.print(FTW_CFB, 9);
   Serial.print("  Should be: "); Serial.print("0.11641532182\n");
   Serial.print("FTW_CBF = "); Serial.print(FTW_CBF, 8);
+  Serial.print("  Should be: "); Serial.print("8.589934592\n");
+  Serial.print("Current Sweep Time: "); Serial.print(FTW_CBF, 8);
   Serial.print("  Should be: "); Serial.print("8.589934592\n");
   delay(10);
   
@@ -82,6 +93,9 @@ void setup() {
   digitalWrite(P0, LOW); // Ensure profile pin 0 low.
   digitalWrite(CS, LOW); // Ensure slave select high to start.
   startupLEDS();         // Little LED show for startup.
+
+  // ADC REFERENCE SETUP:
+  analogReference(EXTERNAL);
   
   // SPI STARTUP MUST OCCUR AFTER PIN DEFINITIONS & BEFORE DDS SETUP:
   SPI.begin();
@@ -89,32 +103,49 @@ void setup() {
   // DDS SET INITIAL REGISTER VALUES:
   dds_setup();
 
-  // ADC REFERENCE SETUP:
-  analogReference(EXTERNAL);
-
   // SETUP FINISHED:
-  Serial.println("Startup Finished.");
+  Serial.println("Startup Finished. Waiting for commands.\n\n");
 }
 
 // MAIN LOOP:
 void loop() {
-  //leds(100,0,0);
-  setFreqMhz(10);
-  for(unsigned int i = 40000; i <= 60000; i = i+10){
-    setFreqkHz(i);
-    delay(10);
-    int adc1_in = analogRead(ADC_1); // ref
-    int adc2_in = analogRead(ADC_2); // test
-    //Serial.print("ADC: "); Serial.print(adc1_in); Serial.print("  ADC2: "); Serial.println(adc2_in);
-    int adc_dif = adc2_in - adc1_in;
-    float dif_vol = convVol(adc_dif);
-    float dB_in   = convPwr(dif_vol);
-    //Serial.print("dB: "); Serial.print(dB_in, 5); Serial.print("  Freq (Mhz): "); Serial.println(i);
-    Serial.print(dB_in, 5); Serial.print(", "); Serial.println(i);
+  // WAIT FOR SERIAL COMMANDS:
+  serialControl(); // Not completed yet...
+  //serialCollect();
+  //sweep(1000000, 250000000, 40000);
+  //sweep(100000000, 1000000, 40000);
+}
+
+// SWEEP FUNCTION:
+// Runs frequency sweep and prints each new frequency's power value
+// in -dB for the given frequency. Returns run time in miliseconds.
+void sweep(unsigned long start, unsigned long end, int step){
+  Serial.print("SWEEP RUN TIME: "); Serial.print((((end-start)/step)*sweepDelay)/1000); Serial.println("s");
+  if(start > end){
+    for(unsigned long i = start; i >= end; i = i-step){
+      setFrequency(i);
+      delay(sweepDelay);
+      int adc1_in = analogRead(ADC_1); // ref
+      int adc2_in = analogRead(ADC_2); // test
+      int adc_dif = adc2_in - adc1_in;
+      float dif_vol = convVol(adc_dif);
+      float dB_in   = convPwr(dif_vol);
+      Serial.print(dB_in, 5); Serial.print(", "); Serial.println(i);
+    }
   }
-  Serial.println("SWEEP END");
-  leds(0, 100, 50);
-  end();
+  else{
+    for(unsigned long i = start; i <= end; i = i+step){
+      setFrequency(i);
+      delay(sweepDelay);
+      int adc1_in = analogRead(ADC_1); // ref
+      int adc2_in = analogRead(ADC_2); // test
+      int adc_dif = adc2_in - adc1_in;
+      float dif_vol = convVol(adc_dif);
+      float dB_in   = convPwr(dif_vol);
+      Serial.print(dB_in, 5); Serial.print(", "); Serial.println(i);
+    }
+  }
+  setFrequency(0);
 }
 
 // CONVERT VOLTAGE READING TO OUTPUT POWER:
@@ -136,7 +167,7 @@ void setFrequency(float frequency){
   else{
     dleds(0,0,0);
   }
-  CFTW_V = calc_FTW(frequency);
+  CFTW_V = calc_FTW(frequency+frqAdjust);
   ddsWrite_32(CFTW, CFTW_V); // FTW
   pulse(io_update);
 }
@@ -280,75 +311,102 @@ void startupLEDS(){
   dleds(0,0,0);
 }
 
-//Looks for incoming serial information and if found, goes into diagnostics loop. 
-/*
+// Looks for incoming serial information to act on.
+// ASSUMES SANATIZED INPUTS!!!
+// COMMANDS:
+// SWEEP: START, END, STEPSIZE
+// SETF: X (Hz)
+// 
 void serialControl(){
-	if(Serial.available() > 0){		//Checks for serial data.
-		while(true){
-			if(Serial.available() > 0){
-				//Read the incoming.
-        String incoming = Serial.readString();
-        //Echo incoming.
-        Serial.println();
-        Serial.print("Received: ");
-        Serial.println(incoming);
-        incoming.toLowerCase();
-        //Actions:
-        if(incoming == "diagnostics" || incoming == "info"){
-          print_diagnostics();
-        }
-        else if(incoming == "servo test"){
-          leds_off();
-          servo.attach(servo_pin);
-					green(0);
-					servo.write(settings.servo_release_pos);
-					delay(1000);
+  if(Serial.available() > 0){ // Check for a new message on serial port.
+    String incoming =  getNewWord(); // Gets first word in serial string.
 
-					green(150);
-					red(0);
-					servo.write(settings.servo_mid_pos);
-					delay(1000);
+    //COMMANDS:
+    if(incoming == "S"){  // SWEEP WITH THE NEXT THREE VALUE IN THE INCOMMING SERIAL STRING.
+      dleds(0,0,1);
+      String str_frq = getNewWord(); // grabs the starting frequency.
+      unsigned long strFrq = str_frq.toDouble();
+      Serial.print("Start Frequency: "); Serial.println(strFrq);
 
-					green(255);
-					servo.write(settings.servo_lock_pos);
-					delay(1000);
+      String end_frq = getNewWord(); // grabs the starting frequency.
+      unsigned long endFrq = end_frq.toDouble();
+      Serial.print("End Frequency: "); Serial.println(endFrq);
 
-					leds_off();
-					servo.detach();
-        }
-        else if(incoming == "exit"){
-          leds_off();
-          break;
-        }
-        else if(incoming == "help"){
-          Serial.println();
-          Serial.println("Valid commands:");
-          Serial.println("1) diagnostics or info");
-          Serial.println("2) arm");
-          Serial.println("3) servo test");
-          Serial.println("4) exit");
-          Serial.println("(Not Case sensitive.)");
-        }
-        else{
-          Serial.println();
-          Serial.println("Command not recognized! Type 'help' for more info.");
-        }
-	    }
+      String stp_size = getNewWord(); // grabs the starting frequency.
+      int stp = stp_size.toInt();
+      Serial.print("Step Size: "); Serial.println(stp);
 
-	    //Fade blue while in Serial loop.
-      for(int i = 0; i != 255; i++){
-				leds(0,0,i);
-				delay(4);
-			}
-			for(int i = 255; i != 0; i--){
-				leds(0,0,i);
-				delay(4);
-			}
-		}
-	}
+      if(str_frq == "<ERROR>" || end_frq == "<ERROR>" || stp_size == "<ERROR>"){
+        errorMsg();
+      }
+      else{
+        Serial.println("Starting sweep...");
+        sweep(strFrq, endFrq, stp);
+        clearSerial();
+      }
+    }
+    else if(incoming == "F"){ // SET FREQUENCY WITH THE NEXT WORD.
+      dleds(0,0,1);
+      String frq = getNewWord(); // grabs the starting frequency.
+      unsigned long Frq = frq.toDouble();
+      if(frq == "<ERROR>"){
+        errorMsg();
+      }
+      else{
+        Serial.print("\nSet Frequency to: "); Serial.println(Frq);
+        setFrequency(Frq);
+        clearSerial();
+      }
+    }
+    else if(incoming == "HELP" || incoming == "INFO"){
+      Serial.println("\nBioLite Possible Commands:");
+      Serial.println("Sweep: S STARTF ENDF STEPSIZE");
+      Serial.println("Set Freq: F FREQ (Hz)");
+      Serial.println("Example: S 40000000 60000000 10000");
+      clearSerial();
+    }
+    else {
+      errorMsg();
+    }
+  }
+  //Fade blue while in Serial loop.
+  for(int i = 0; i != 255; i++){
+    leds(0,0,i);
+    delay(4);
+  }
+  for(int i = 255; i != 0; i--){
+    leds(0,0,i);
+    delay(4);
+  }
 }
-*/
 
+// Simple serial read helper function. Returns string.
+// Very slow blocking algorithm, not recommended for timing critical cases.
+String getNewWord(){
+  unsigned long timer = millis();
+  while(!(Serial.available() > 0)){ // While no new serial in buffer, wait.
+    if(millis() - timer > 200){
+      return "<ERROR>";
+    }
+  } 
+  String incoming = Serial.readStringUntil(' '); //Read message as a string.
+  incoming.toUpperCase(); // All commands should be in uppercase.
+  return incoming;
+}
+
+void errorMsg(){
+  Serial.println();
+  Serial.println("Command not recognized! Send 'HELP' for more info.");
+  clearSerial();
+}
+
+void clearSerial(){
+  while(Serial.available() > 0){
+    Serial.read();
+  }
+}
+
+/*
 float readVcc(){
   // Read 1.1V reference against AVcc
   // set the reference to Vcc and the measurement to the internal 1.1V reference
@@ -374,3 +432,4 @@ float readVcc(){
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return result; // Vcc in millivolts
 }
+*/

@@ -15,8 +15,10 @@ int headerHeight = 50;
 color headerFill = ucscBlue; //#0077c2;
 color subheaderFill = #42a5f5;
 
-// Toolbar
+// Toolbox
 color toolbarFill = #42a5f5;
+int toolboxHeight = 150;
+int toolboxWidth = 200;
 
 // Buttons
 color hoverFade = #757575;

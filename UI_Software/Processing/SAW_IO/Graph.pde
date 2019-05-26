@@ -121,7 +121,7 @@ class Graph {
     }
     
     // Vertical
-    
+
   }
   
   // Draw Grid
