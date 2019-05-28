@@ -31,11 +31,14 @@ class Graph {
     ypos = y;
     Width = w;
     Height = h;
-    DataX = dataX.clone(); // Copies of original data to be used in helper functions.
+    DataX = dataX.clone();
     DataY = dataY.clone();
     
-    DataXS = dataX.clone(); // Scaled versions of the data.
+    DataXS = dataX.clone();
     DataYS = dataY.clone();
+    
+    
+    
   }
   
   public void display(){
@@ -113,12 +116,12 @@ class Graph {
     // Print tick marks based on orientation:
     
     if(vert == false){
-      float lastVal = data[data.length-1]; // /1000000; // Add if data actually is in MHz.
+      float lastVal = data[data.length-1];
       for(int i=1; i < 10; i++){
         text(int((lastVal/10)*i), x+(i*(size/10)), y-15);
       }
       textAlign(RIGHT, CENTER);
-      text("MHz", x+(10*(size/10))-2, y-15);
+      text("Hz", x+(10*(size/10))-2, y-15);
       textAlign(CENTER, CENTER);
     }
     else{

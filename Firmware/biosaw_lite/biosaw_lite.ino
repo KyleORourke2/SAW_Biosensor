@@ -92,7 +92,8 @@ void setup() {
   // SET PIN INITIAL VALUES:
   digitalWrite(P0, LOW); // Ensure profile pin 0 low.
   digitalWrite(CS, LOW); // Ensure slave select high to start.
-  startupLEDS();         // Little LED show for startup.
+  dleds(0,0,0);
+  //startupLEDS();         // Little LED show for startup.
 
   // ADC REFERENCE SETUP:
   analogReference(EXTERNAL);
@@ -104,7 +105,7 @@ void setup() {
   dds_setup();
 
   // SETUP FINISHED:
-  Serial.println("Startup Finished. Waiting for commands.\n\n");
+  Serial.println("Startup Finished. Waiting for commands.\n");
 }
 
 // MAIN LOOP:
@@ -121,6 +122,8 @@ void loop() {
 // in -dB for the given frequency. Returns run time in miliseconds.
 void sweep(unsigned long start, unsigned long end, int step){
   Serial.print("SWEEP RUN TIME: "); Serial.print((((end-start)/step)*sweepDelay)/1000); Serial.println("s");
+  Serial.println("SWEEP START");
+  delay(500);
   if(start > end){
     for(unsigned long i = start; i >= end; i = i-step){
       setFrequency(i);
@@ -146,6 +149,7 @@ void sweep(unsigned long start, unsigned long end, int step){
     }
   }
   setFrequency(0);
+  Serial.println("SWEEP END");
 }
 
 // CONVERT VOLTAGE READING TO OUTPUT POWER:

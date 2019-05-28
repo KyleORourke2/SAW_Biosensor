@@ -34,7 +34,7 @@ class Toolbox {
     fill(0);
     textSize(30);
     textAlign(CENTER, CENTER);
-    text("Toolbox", xpos, ypos - (Height/2)+15);
+    text("Toolbox", xpos, ypos - (Height/2)+20);
     
     // Objects in header:
     sweepRun.display();
@@ -54,10 +54,10 @@ class Toolbox {
   // Check if the was clicked location has an action
   void click(int mx, int my){
     if(sweepRun.wasClicked(mx, my)){ // Sweep button action.
-      bioPort.write("S 40000000 60000000 100000"); 
+      bioPort.write("S 40000000 60000000 10000"); 
     }
     if(setFreq.wasClicked(mx, my)){ // Sweep button action.
-      bioPort.write("F 50000000"); 
+      bioPort.write("F 10000000"); 
     }
   }
   

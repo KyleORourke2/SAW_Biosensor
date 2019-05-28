@@ -10,7 +10,7 @@ class Header {
   int xpos = 0;
   int ypos = 0;
   int Height = headerHeight; // Thickness of the header.
-  int Width = width; // should span entire width.
+  int Width = width;   // should span entire width.
   color fillColor;
   
   Button exitButton; // Button to close program.
