@@ -73,10 +73,6 @@ void setup() {
   Serial.print("  Should be: "); Serial.print("0.11641532182\n");
   Serial.print("FTW_CBF = "); Serial.print(FTW_CBF, 8);
   Serial.print("  Should be: "); Serial.print("8.589934592\n");
-  Serial.print("Current Sweep Time: "); Serial.print(FTW_CBF, 8);
-  Serial.print("  Should be: "); Serial.print("8.589934592\n");
-  delay(10);
-  
 
   // PINMODE DEFINITIONS:
   pinMode(CS,        OUTPUT);
@@ -111,19 +107,18 @@ void setup() {
 // MAIN LOOP:
 void loop() {
   // WAIT FOR SERIAL COMMANDS:
-  serialControl(); // Not completed yet...
-  //serialCollect();
+  serialControl();
   //sweep(1000000, 250000000, 40000);
-  //sweep(100000000, 1000000, 40000);
+
 }
 
 // SWEEP FUNCTION:
 // Runs frequency sweep and prints each new frequency's power value
 // in -dB for the given frequency. Returns run time in miliseconds.
 void sweep(unsigned long start, unsigned long end, int step){
-  Serial.print("SWEEP RUN TIME: "); Serial.print((((end-start)/step)*sweepDelay)/1000); Serial.println("s");
+  Serial.print("SWEEP RUN TIME: "); Serial.print((((end-start)/step)*sweepDelay)/100); Serial.println("s");
   Serial.println("SWEEP START");
-  delay(500);
+  delay(1000);
   if(start > end){
     for(unsigned long i = start; i >= end; i = i-step){
       setFrequency(i);
@@ -344,7 +339,6 @@ void serialControl(){
         errorMsg();
       }
       else{
-        Serial.println("Starting sweep...");
         sweep(strFrq, endFrq, stp);
         clearSerial();
       }

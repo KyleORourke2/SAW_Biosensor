@@ -33,41 +33,47 @@ class Graph {
     Height = h;
     DataX = dataX.clone(); // Copies of original data to be used in helper functions.
     DataY = dataY.clone();
-    
     DataXS = dataX.clone(); // Scaled versions of the data.
     DataYS = dataY.clone();
   }
   
   public void display(){
-    
-    // Scale data to fill entire length of graph box
-    DataXS = arrayScale_X(DataX.clone(), Width);
-    DataYS = arrayScale_Y(DataY.clone(), ypos, Height);
-    // Adjust array by xpos & ypos
-    DataXS = arrayShift(DataXS.clone(), xpos);
-    DataYS = arrayShift(DataYS.clone(), ypos);
-    // Set Y values to correct coordinate system.
-    DataYS = arrayFlip(DataYS.clone(), ypos);
-
+       
     // Draw graph box:
     drawBox(xpos, ypos, Width, Height);
     drawGrid(xpos, ypos, Width, Height);
-    drawTickVals(DataX, xpos, ypos, Width, false); // draw horizontal ticks
-    drawTickVals(DataY, xpos, ypos, Height, true); // draw horizontal ticks
-    // Write Axis & Title Text
-   // drawLabels(xpos, ypos, Width, Height);
     
-    // Draw graph line
-    for(int i = 0; i < DataXS.length-1; i++){
-      strokeWeight(1);
-      stroke(lineColor);
-      line(DataXS[i], DataYS[i], DataXS[i+1], DataYS[i+1]);
+    if(DataX.length > 1 && DataY.length > 1){
+      drawTickVals(DataX.clone(), xpos, ypos, Width, false); // draw horizontal ticks
+      drawTickVals(DataY.clone(), xpos, ypos, Height, true); // draw horizontal ticks
+      
+      // Scale data to fill entire length of graph box
+      DataXS = arrayScale_X(DataX.clone(), Width);
+      DataYS = arrayScale_Y(DataY.clone(), ypos, Height);
+      // Adjust array by xpos & ypos
+      DataXS = arrayShift(DataXS.clone(), xpos);
+      DataYS = arrayShift(DataYS.clone(), ypos);
+      // Set Y values to correct coordinate system.
+      DataYS = arrayFlip(DataYS.clone(), ypos);
+      
+      // Draw graph line
+      for(int i = 0; i < DataXS.length-1; i++){
+        strokeWeight(1);
+        stroke(lineColor);
+        line(DataXS[i], DataYS[i], DataXS[i+1], DataYS[i+1]);
+      }
     }
-    
   } // Display end
   
   
   //////////////// HELPER FUNCTIONS ////////////////
+  void updateDataSet(float[] dataX, float[] dataY){
+    DataX = dataX.clone(); // Copies of original data to be used in helper functions.
+    DataY = dataY.clone();
+    DataXS = dataX.clone(); // Scaled versions of the data.
+    DataYS = dataY.clone();
+  }
+  
   
   // Check if the was clicked location has an action
   void click(int mx, int my){
@@ -113,9 +119,11 @@ class Graph {
     // Print tick marks based on orientation:
     
     if(vert == false){
-      float lastVal = data[data.length-1]; // /1000000; // Add if data actually is in MHz.
+      float maxVal = 60000000;//data[data.length-1]; // /1000000; // Add if data actually is in MHz.
+      float minVal = 40000000;
+      float span = maxVal - minVal;
       for(int i=1; i < 10; i++){
-        text(int((lastVal/10)*i), x+(i*(size/10)), y-15);
+        text(int(minVal+(span/10)*i), x+(i*(size/10)), y-15);
       }
       textAlign(RIGHT, CENTER);
       text("MHz", x+(10*(size/10))-2, y-15);
@@ -125,7 +133,7 @@ class Graph {
       textAlign(LEFT, CENTER);
       float maxVal = data[findMax(data)];
       float minVal = data[findMin(data)];
-      float span = maxVal - minVal; // gives 110
+      float span = maxVal - minVal;
       text(int(maxVal)+" dB", x+5, y-Height+10);
       for(int i=1; i < 10; i++){
         text(int(minVal+(span/10)*i), x+5, y-(i*(size/10))-2);

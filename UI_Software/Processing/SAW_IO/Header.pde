@@ -46,7 +46,7 @@ class Header {
   }
   
   // Check if the was clicked location has an action
-  void click(int mx, int my){
+  private void click(int mx, int my){
     if(exitButton.wasClicked(mx, my)){ // Exit button action.
       exit();
     }

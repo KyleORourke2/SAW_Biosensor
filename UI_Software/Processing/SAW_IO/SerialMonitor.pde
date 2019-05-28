@@ -12,15 +12,13 @@ class SerialMonitor {
   int Height = SerialMonitorHeight; // Thickness of the header.
   int Width = width-1; // should span entire width.
   String[] serialBuffer = {}; // Need to init one value for some reason...
-  String[] sweepData = {}; // Holds all values from serial port between "SWEEP START" & "SWEEP END"
-  boolean sweepStart = false; // TRUE after the "SWEEP START" message is recieved.
   
   SerialMonitor(int x, int y){
     xpos = x;
     ypos = y;
   }
   
-  void display(){
+  void display(String newSerial){
     
     // Bounding box:
     stroke(SerialMonitorBorder);
@@ -38,47 +36,49 @@ class SerialMonitor {
     textAlign(LEFT, CENTER);
     text("Serial Monitor", xpos - (Width/2)+5, ypos - (Height/2)+8);    
     
-    // Serial port grab incomming data:
-    // THIS FUNCTION IS BAD SINCE IT CAN MISS INCOMMING DATA! (I think?)
-    // However, It is not used in the graphing function and only really is for
-    // displaying that data is comming in. :D
-    while(bioPort.available() > 0){
-      String inBuffer = bioPort.readStringUntil('\n');  // Read until newline.
-      if(inBuffer != null){
-        if(inBuffer == "START SWEEP"){ // Start collecting data
-          while(sweepData.length > 0){
-            sweepData = shorten(sweepData);  // Clear out all old data first.
-          }
-          sweepStart = true;
-        }
-        if(inBuffer == "END SWEEP"){ // Start collecting data
-          sweepStart = false;
-        }
-        
-        serialBuffer = reverse(serialBuffer); // Flips the data since append only puts it on the end.
-        serialBuffer = append(serialBuffer, inBuffer);
-        serialBuffer = reverse(serialBuffer);
-      }
+    
+    // EVERYTHING TO DO WITH 'FAKE' SERIAL PORT:
+    
+    // Get new value and add to buffer array:
+    if(newSerial != null){
+      serialBuffer = reverse(serialBuffer); // Flips the data since append only puts it on the end.
+      serialBuffer = append(serialBuffer, newSerial);
+      serialBuffer = reverse(serialBuffer);
     }
     
     // Print the values in our serial terminal box in ascending order.
     for(int i = 0; i < serialBuffer.length && i < 8; i++){
-      text(serialBuffer[i], xpos - (Width/2)+5, ypos + ((Height/2)-2) - 21*i);
-      println(serialBuffer[i]);
+      text(serialBuffer[i], xpos - (Width/2)+5, ypos + ((Height/2)-17) - 21*i);
     }
     
     // Delete values from serialBuffer to keep memory usage low:
-    while(serialBuffer.length >= 9){
+    if(serialBuffer.length >= 9){
       serialBuffer = shorten(serialBuffer);
     }
     
     textAlign(CENTER, CENTER);
   }
-  
-  void getData(){
-    
+
+  // Serial port grab incomming data:
+  // THIS FUNCTION IS BAD SINCE IT CAN MISS INCOMMING DATA! (I think?)
+  // However, It is not used in the graphing function and only really is for
+  // displaying that data is comming in. :D
+  String getSerial(){
+    if(bioPort.available() > 0){
+      String inBuffer = bioPort.readStringUntil('\n');  // Read until newline.
+      if(inBuffer != null){
+        return inBuffer;
+      }
+      else{
+        return null;
+      }
+    }
+    else{
+      return null;
+    }
   }
-  
+
+
   // Check if a click is in the header box.
   boolean wasClicked(int mx, int my){
     if(mx >= xpos && mx <= xpos + Width){
@@ -90,7 +90,7 @@ class SerialMonitor {
   }
   
   // Check if the was clicked location has an action
-  void click(int mx, int my){
+  private void click(int mx, int my){
 
   }
   

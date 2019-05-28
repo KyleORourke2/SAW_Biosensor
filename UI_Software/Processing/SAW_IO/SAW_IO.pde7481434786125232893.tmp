@@ -17,7 +17,8 @@ float[] dataX =  {0,10,20,30,40,50,60,70,80,90,100};   // Example data
 
 float[] sDataY = {}; // Serial data holder.
 float[] sDataX = {}; // Serial data holder.
-boolean sweepSerial = false; // Flag if current serial data is sweep data.
+
+String[] sweepData = {}; // String holding raw sweep data unparsed.
 
 void setup() {
   fullScreen();
@@ -25,8 +26,8 @@ void setup() {
   header = new Header();
   toolbox = new Toolbox(100, (toolboxHeight/2)+headerHeight);
   serialMonitor = new SerialMonitor(width/2, height - (SerialMonitorHeight/2)-1);
-  graphSerial = new Graph (sDataX, 
-                           sDataY, 
+  graphSerial = new Graph (dataX, 
+                           dataY1, 
                            100*2+1, 
                            (height-SerialMonitorHeight-8), 
                            (width-(100*2)-3), 
@@ -39,31 +40,21 @@ void setup() {
 
 // DRAW ALL OBJECTS
 void draw() {
+  frameRate(16);
   header.display();
   toolbox.display();
-  graphSerial.updateDataSet(sDataX, sDataY);
+  serialMonitor.display();
+  
+  // Get new serial values:
+  if(serialMonitor.getSweepData() != null){
+    sweepData = serialMonitor.getSweepData();
+    sDataY = getdB(sweepData.clone());
+  }
+  
+  
+  
   graphSerial.display();
-  
-  String serialBuffer = trim(serialMonitor.getSerial()); // Grabs next line in serial buffer.
-  serialMonitor.display(serialBuffer);
-  
-  // ANYTHING dependent on new serial data needs to go here:
-  if(serialBuffer != null){
-    println(serialBuffer);
-    
-    // This needs to happen before the code below... Cause it's late and I'm getting lazy...
-    if(sweepSerial == true && !serialBuffer.equals("SWEEP END")){  // If new sweep data, fill buffer.
-      sDataY = append(sDataY, getdB(serialBuffer));
-      sDataX = append(sDataX, getFrq(serialBuffer));
-    }
-    if(serialBuffer.equals("SWEEP START")){  // Check for new sweep data. Flawed if device fails.
-      sweepSerial = true;
-    }
-    if(serialBuffer.equals("SWEEP END")){ // Flawed if device malfunctions and doesn't output the string.
-      sweepSerial = false;
-    }
-  } // if END
-} // draw END
+}
 
 // MOUSE CLICK DETECTED:
 void mousePressed() {
@@ -78,19 +69,14 @@ void keyPressed() {
 }
 
 // HELPER FUNCTIONS:
-float getdB(String data){
-  float parsed;
-  String[] temp = split(data, ',');
-  parsed = float(temp[0]);
-  //println("dB Parsed: " + parsed);
-  return parsed;
-}
-
-
-float getFrq(String data){
-  float parsed;
-  String[] temp = split(data, ',');
-  parsed = float(temp[1]);
-  //println("Frq Parsed: " + parsed);
+float[] getdB(String[] data){
+  float[] parsed = {};
+  
+  for(int i = 0; i < data.length; i++){
+    String[] temp = split(data[i], ',');
+    parsed = append(parsed, float(temp[0]));
+    println("Parsed: " + parsed);
+  }
+  
   return parsed;
 }

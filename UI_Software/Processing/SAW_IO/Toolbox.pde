@@ -52,7 +52,7 @@ class Toolbox {
   }
   
   // Check if the was clicked location has an action
-  void click(int mx, int my){
+  private void click(int mx, int my){
     if(sweepRun.wasClicked(mx, my)){ // Sweep button action.
       bioPort.write("S 40000000 60000000 10000"); 
     }
