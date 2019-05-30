@@ -32,9 +32,10 @@ class Button {
   }
   
   // Display the button
-  void display(){
+  public void display(){
     // Bounding box
     stroke(strokeColor);
+    strokeWeight(1);
     if(hovering(mouseX, mouseY)){
       fill(hoverFade);
     } else {

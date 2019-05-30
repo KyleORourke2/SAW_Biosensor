@@ -49,7 +49,7 @@ void draw() {
   
   // ANYTHING dependent on new serial data needs to go here:
   if(serialBuffer != null){
-    println(serialBuffer);
+    //println(serialBuffer);
     
     // This needs to happen before the code below... Cause it's late and I'm getting lazy...
     if(sweepSerial == true && !serialBuffer.equals("SWEEP END")){  // If new sweep data, fill buffer.

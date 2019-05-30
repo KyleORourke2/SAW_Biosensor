@@ -10,7 +10,7 @@ class Header {
   int xpos = 0;
   int ypos = 0;
   int Height = headerHeight; // Thickness of the header.
-  int Width = width; // should span entire width.
+  int Width = width;   // should span entire width.
   color fillColor;
   
   Button exitButton; // Button to close program.
@@ -46,11 +46,9 @@ class Header {
   }
   
   // Check if the was clicked location has an action
-  void click(int mx, int my){
-    if(wasClicked(mx, my)){ // The header area was clicked.
-      if(exitButton.wasClicked(mx, my)){ // Exit button action.
-        exit();
-      }
+  private void click(int mx, int my){
+    if(exitButton.wasClicked(mx, my)){ // Exit button action.
+      exit();
     }
   }
   

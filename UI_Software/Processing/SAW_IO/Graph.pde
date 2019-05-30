@@ -19,6 +19,8 @@ class Graph {
   float[] DataY;
   float[] DataYS;
   
+  int fmin = 40000000;
+  int fmax = 60000000;
   
   // Constructor
   // positions x y, dimensions w h, color body, color text
@@ -48,10 +50,10 @@ class Graph {
       drawTickVals(DataY.clone(), xpos, ypos, Height, true); // draw horizontal ticks
       
       // Scale data to fill entire length of graph box
-      DataXS = arrayScale_X(DataX.clone(), Width);
+      DataXS = arrayScale_X(DataX.clone(), xpos, Width, fmin, fmax);
       DataYS = arrayScale_Y(DataY.clone(), ypos, Height);
       // Adjust array by xpos & ypos
-      DataXS = arrayShift(DataXS.clone(), xpos);
+      //DataXS = arrayShift(DataXS.clone(), xpos);
       DataYS = arrayShift(DataYS.clone(), ypos);
       // Set Y values to correct coordinate system.
       DataYS = arrayFlip(DataYS.clone(), ypos);
@@ -61,6 +63,7 @@ class Graph {
         strokeWeight(1);
         stroke(lineColor);
         line(DataXS[i], DataYS[i], DataXS[i+1], DataYS[i+1]);
+        println("X: " + DataXS[i] + " Y: " + DataYS[i]);
       }
     }
   } // Display end
@@ -126,7 +129,7 @@ class Graph {
         text(int(minVal+(span/10)*i), x+(i*(size/10)), y-15);
       }
       textAlign(RIGHT, CENTER);
-      text("MHz", x+(10*(size/10))-2, y-15);
+      text("Hz", x+(10*(size/10))-2, y-15);
       textAlign(CENTER, CENTER);
     }
     else{
@@ -172,9 +175,10 @@ class Graph {
   }
   
   // Scales data to fit graph box
-  private float [] arrayScale_X(float[] data, int w){
-    float x_scaleFactor = (w/data[data.length-1]);
-    data = arrayMult(data, x_scaleFactor);
+  private float [] arrayScale_X(float[] data, int xpos, int Width, int fmin, int fmax){
+    for(int i = 0; i < data.length; i++){
+      data[i] = map(data[i], fmin, fmax, xpos, (xpos+Width));
+    }
     return data;
   }
   
@@ -248,6 +252,11 @@ class Graph {
       data[i] = data[i] - 2*(data[i] - x);
     }
     return data;
+  }
+  
+  // Maps a value to a defined range.
+  float map(float x, int in_min, int in_max, int out_min, int out_max){
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   }
 }
 
