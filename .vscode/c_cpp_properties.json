@@ -3,11 +3,14 @@
         {
             "name": "Win32",
             "includePath": [
-                "C:\\\\Users\\\\Kyle\\\\AppData\\\\Local\\\\Arduino15\\\\packages\\\\arduino\\\\tools\\\\**",
-                "C:\\\\Users\\\\Kyle\\\\AppData\\\\Local\\\\Arduino15\\\\packages\\\\arduino\\\\hardware\\\\avr\\\\1.6.22\\\\**"
+                "C:\\Users\\Kyle\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\**",
+                "C:\\Users\\Kyle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.22\\**",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
+                "C:\\Program Files (x86)\\Arduino\\tools\\**"
             ],
             "forcedInclude": [
-                "C:\\\\Users\\\\Kyle\\\\AppData\\\\Local\\\\Arduino15\\\\packages\\\\arduino\\\\hardware\\\\avr\\\\1.6.22\\\\cores\\\\arduino\\\\Arduino.h"
+                "C:\\Users\\Kyle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.22\\cores\\arduino\\Arduino.h",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
             ],
             "intelliSenseMode": "msvc-x64"
         }

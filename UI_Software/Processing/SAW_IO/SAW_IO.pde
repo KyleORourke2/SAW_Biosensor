@@ -33,8 +33,10 @@ void setup() {
                            (height-SerialMonitorHeight-headerHeight-9), 
                            ucscYellow, 
                            "Frequency (MHz)", "-dB", "S21");
+  
   bioPort = new Serial(this, serialPort, 9600);
   bioPort.clear();
+  
 }
 
 // DRAW ALL OBJECTS
